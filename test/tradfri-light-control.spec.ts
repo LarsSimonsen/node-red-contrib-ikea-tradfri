@@ -178,7 +178,8 @@ describe('Tradfri light control node', () => {
         instanceId: 2,
         name: 'g1',
       },
-      expect.objectContaining({ dimmer: 50 })
+      expect.objectContaining({ dimmer: 50 }),
+      true
     )
 
     // Turning off
@@ -198,7 +199,12 @@ describe('Tradfri light control node', () => {
         instanceId: 2,
         name: 'g1',
       },
-      expect.objectContaining({ onOff: false, colorTemperature: 0, dimmer: 50 })
+      expect.objectContaining({
+        onOff: false,
+        colorTemperature: 0,
+        dimmer: 50,
+      }),
+      true
     )
   })
 })

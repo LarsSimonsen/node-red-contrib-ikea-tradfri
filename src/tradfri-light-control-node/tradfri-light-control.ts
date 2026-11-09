@@ -189,7 +189,13 @@ export = (RED: NodeAPI): void | Promise<void> => {
           ),
         ...Array.from(this.gateway.groups.values())
           .filter((group) => groupIds.includes(group.instanceId))
-          .map((group) => this.gateway.client.operateGroup(group, operation)),
+          // A group's cached state is the last group command the gateway saw,
+          // not the state of its devices. Send the whole operation every time
+          // (as Group#turnOn and friends do), or a command that matches the
+          // stale cache is silently dropped.
+          .map((group) =>
+            this.gateway.client.operateGroup(group, operation, true)
+          ),
       ])
         .then((results) => {
           this.log(`Light action result: ${JSON.stringify(results)}`)

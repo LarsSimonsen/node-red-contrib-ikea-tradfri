@@ -178,7 +178,8 @@ describe('Tradfri light control node', () => {
         instanceId: 2,
         name: 'g1',
       },
-      expect.objectContaining({ position: 100 })
+      expect.objectContaining({ position: 100 }),
+      true
     )
 
     // Stopping
@@ -198,7 +199,8 @@ describe('Tradfri light control node', () => {
         instanceId: 2,
         name: 'g1',
       },
-      expect.objectContaining({ trigger: 0 })
+      expect.objectContaining({ trigger: 0 }),
+      true
     )
   })
 })
