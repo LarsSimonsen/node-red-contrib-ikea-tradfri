@@ -1,0 +1,106 @@
+<script type="text/javascript">
+  RED.nodes.registerType('tradfri-config', {
+    category: 'config',
+    credentials: {
+      identity: { type: 'text' },
+      preSharedKey: { type: 'text' },
+    },
+    defaults: {
+      name:  { value: '' },
+      gatewayHost : { value: '', required: true },
+      identity: { value: '', required: true },
+      preSharedKey: { value: '', required: true }
+    },
+    label: function () {
+      return this.name || 'TRADFRI Gateway';
+    },
+    oneditprepare : function () {
+      const setHover = (obj, txt) => {
+        obj.hover(
+          () => {
+            $('#tradfri-help').html(txt)
+          },
+          () => {
+            $('#tradfri-help').html('')
+          }
+        );
+      }
+      setHover($('#node-config-input-gatewayHost'),'The IP address or hostname of the IKEA TRÅDFRI gateway');
+      setHover($('#node-config-input-securityCode'),'The security code as found on a sticker under the IKEA TRÅDFRI gateway');
+      setHover($('#node-config-input-identity'),'This value will be automatically filled in after authentication succeeds');
+      setHover($('#node-config-input-preSharedKey'),'This value will be automatically filled in after authentication succeeds');
+
+      $.getJSON('tradfri/gateway', (data) => {
+        if (data === null) {
+          return
+        }
+
+        const autoDiscoveredGatewayOption = $(`<a href="#">${data}</a>`)
+        autoDiscoveredGatewayOption.on('click', () => {
+          $('#node-config-input-gatewayHost').val(data)
+        })
+        $("#tradfri-discovered-gateway").append(autoDiscoveredGatewayOption)
+        $("#discovered-gateway").css('display', 'block')
+      });
+
+      $('#authenticate').click(() => {
+        const securityCode = $('#node-config-input-securityCode').val()
+        const gatewayHost = $('#node-config-input-gatewayHost').val()
+        if (!securityCode || !gatewayHost) {
+          $('#tradfri-error')
+            .text('Please enter both the gateway host and the security code!')
+            .css('visibility', 'visible')
+          return
+        }
+
+        $.post(`tradfri/gateway/${gatewayHost}/authenticate`, { securityCode }, (data) => {
+          const { identity, preSharedKey } = data
+          $('#node-config-input-identity').val(identity)
+          $('#node-config-input-preSharedKey').val(preSharedKey)
+        }).fail((response) => {
+          $('#tradfri-error')
+            .html(`Unable to authenticate with the gateway!<br>Error: ${(response.responseJSON && response.responseJSON.message) || response.responseText}`)
+            .css('visibility', 'visible')
+        })
+      })
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="tradfri-config">
+  <div class="form-row" style="width:500px">
+    <p></p>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-gatewayHost"><i class="fa fa-server"></i> Gateway host</label>
+    <input type="text" id="node-config-input-gatewayHost" placeholder="Gateway host or IP address">
+    <div id="discovered-gateway" style="display: none;">
+      Click to select an auto-discovered gateway: <span id="tradfri-discovered-gateway"></span>
+    </div>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-securityCode"><i class="fa fa-unlock-alt"></i> Security code</label>
+    <input type="password" id="node-config-input-securityCode" placeholder="As found on TRÅDFRI gateway">
+  </div>
+  <div class="form-row">
+    <button id="authenticate" class="red-ui-button">Authenticate</button>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-identity"><i class="fa fa-passport"></i> Identity</label>
+    <input type="text" disabled id="node-config-input-identity" placeholder="Automatically filled after authentication">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-preSharedKey"><i class="fa fa-key"></i> Pre-shared key</label>
+    <input type="text" disabled id="node-config-input-preSharedKey" placeholder="Automatically filled after authentication">
+  </div>
+  <div class="form-row">
+    <i style="font-size: 95%; color: #E9967A;"><span id="tradfri-help"></span></i>
+  </div>
+  <div class="form-row">
+    <span style="display: block; border-radius: 3px; padding: 1em; background-color: #ff999999; border: 1px solid red; visibility: hidden;" id="tradfri-error"></span>
+  </div>
+</script>

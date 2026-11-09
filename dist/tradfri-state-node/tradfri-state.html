@@ -1,0 +1,233 @@
+<script type="text/javascript">
+  RED.nodes.registerType('tradfri-state',{
+      category: 'smart home',
+      color: '#a6bbcf',
+      defaults: {
+        gateway: { value: '', type: 'tradfri-config', required: true },
+        name: { value: '' },
+        accessories: { value: [] },
+        groups: { value: [] },
+        logInputErrors: { value: true },
+      },
+      inputs: 1,
+      outputs: 1,
+      icon: 'db.svg',
+      label: function () {
+          return this.name || 'tradfri-state'
+      },
+      oneditprepare : function () {
+        const reloadAccessoriesAndGroups = (node) => {
+          $('#node-input-accessories').html('')
+          $('#node-input-groups').html('')
+
+          if (!node || node === '_ADD_') {
+            return
+          }
+
+          $.getJSON(`tradfri/gateway/${node}/accessories`, (data) => {
+            if (!Array.isArray(data)) {
+              return
+            }
+
+            $('#node-input-accessories').append(`<option value="">None</option>`)
+            data
+              .forEach((accessory) => {
+                $('#node-input-accessories').append(`<option value="${accessory.instanceId}">${accessory.name}</option>`)
+              })
+
+            $('#node-input-accessories').val(this.accessories)
+          });
+
+          $.getJSON(`tradfri/gateway/${node}/groups`, (data) => {
+            if (!Array.isArray(data)) {
+              return
+            }
+
+            $('#node-input-groups').append(`<option value="">None</option>`)
+            data.forEach((group) => {
+              $('#node-input-groups').append(`<option value="${group.instanceId}">${group.name}</option>`)
+            })
+
+            $('#node-input-groups').val(this.groups)
+          });
+        }
+
+        $('#node-input-gateway').change(() => {
+          reloadAccessoriesAndGroups($('#node-input-gateway').val())
+        })
+
+        reloadAccessoriesAndGroups($('#node-input-gateway').val())
+      }
+  });
+</script>
+
+<script type="text/html" data-template-name="tradfri-state">
+  <div class="form-row">
+      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-gateway"><i class="fa fa-server"></i> Gateway</label>
+    <input type="text" id="node-input-gateway">
+  </div>
+  <div class="form-row">
+    <label for="node-input-accessories"><i class="fa fa-wifi"></i> Devices</label>
+    <select id="node-input-accessories" multiple></select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-groups"><i class="fa fa-object-group"></i> Groups</label>
+    <select id="node-input-groups" multiple></select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-logInputErrors"> </label>
+    <label for="node-input-logInputErrors" style="width:70%;">
+      <input type="checkbox" id="node-input-logInputErrors" style="display:inline-block; width:22px; vertical-align:top;">
+      <span>Log input message errors</span>
+    </label>
+  </div>
+  <div class="form-tips">
+    <span>
+      Tip: Input message validation errors/warnings are logged by default, but this behavior can be changed.
+    </span>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="tradfri-state">
+  <p>Gets current state of TRÅDFRI smart home devices and/or groups.</p>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="optional">topic
+      <span class="property-type">number | number[]</span>
+    </dt>
+    <dd> the instanceIds of the devices or groups to retrieve the state of.</dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <h4>Common</h4>
+  <dl class="message-properties">
+    <dt>topic
+      <span class="property-type">number[]</span>
+    </dt>
+    <dd> the instanceIds of the devices and/or groups who's state was requested.</dd>
+
+    <dt>payload
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> the state of the devices and/or groups.</dd>
+
+    <dt>payload[instanceId].type
+      <span class="property-type">string</span>
+    </dt>
+    <dd> the type of the device or <code>"group"</code> in case of a group.</dd>
+
+    <dt>payload[instanceId].instanceId
+      <span class="property-type">number</span>
+    </dt>
+    <dd> the unique identifier of the device or group.</dd>
+  </dl>
+
+  <h4>Devices</h4>
+  <dl class="message-properties">
+    <dt>payload.type
+      <span class="property-type">string</span>
+    </dt>
+    <dd> the type of the device.</dd>
+
+    <dt>payload.name
+      <span class="property-type">string</span>
+    </dt>
+    <dd> the name of the device.</dd>
+
+    <dt>payload.alive
+      <span class="property-type">boolean</span>
+    </dt>
+    <dd> whether the device is alive.</dd>
+
+    <dt>payload.lastSeen
+      <span class="property-type">string</span>
+    </dt>
+    <dd> ISO8601 date-time when the device was last seen.</dd>
+
+    <dt>payload.deviceInfo
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> device information like remaining battery and firmware version.</dd>
+
+    <dt class="optional">payload.blind
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> if the device is a window blind, this object contains the blind status.</dd>
+
+    <dt class="optional">payload.lightbulb
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> if the device is a lightbulb, this object contains the bulb status.</dd>
+
+    <dt class="optional">payload.sensor
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> if the device is a sensor, this object contains the sensor status.</dd>
+
+    <dt class="optional">payload.plug
+      <span class="property-type">Object</span>
+    </dt>
+    <dd> if the device is a plug, this object contains the plug status.</dd>
+  </dl>
+
+  <h4>Groups</h4>
+  <dl class="message-properties">
+    <dt>payload.type
+      <span class="property-type">"group"</span>
+    </dt>
+    <dd> indicator that this is the state of a group.</dd>
+
+    <dt>payload.name
+      <span class="property-type">string</span>
+    </dt>
+    <dd> the name of the group.</dd>
+
+    <dt>payload.deviceIds
+      <span class="property-type">number[]</span>
+    </dt>
+    <dd> devices contained in the group.</dd>
+
+    <dt class="optional">payload.sceneId
+      <span class="property-type">number</span>
+    </dt>
+    <dd> active scene of the group.</dd>
+
+    <dt>payload.isOn
+      <span class="property-type">boolean</span>
+    </dt>
+    <dd> whether all switchable devices in the group are turned on.</dd>
+
+    <dt class="optional">payload.dimmer
+      <span class="property-type">number</span>
+    </dt>
+    <dd> dimmer value for contained dimmable lightbulbs.</dd>
+
+    <dt class="optional">payload.position
+      <span class="property-type">number</span>
+    </dt>
+    <dd> position value for contained window blinds.</dd>
+
+    <dt>payload.transitionTime
+      <span class="property-type">number</span>
+    </dt>
+    <dd> transition time used by the group.</dd>
+
+    <dt>payload.createdAt
+      <span class="property-type">string</span>
+    </dt>
+    <dd> ISO8601 date-time when the group was created.</dd>
+  </dl>
+
+  <h3>Details</h3>
+  <p>The devices and/or groups to retrieve state of are the union of those configured in the node and those passed in input
+  messages through <code>msg.topic</code></p>
+
+  <h3>References</h3>
+  <ul>
+    <li><a href="https://github.com/mjwwit/node-red-contrib-ikea-tradfri#tradfri-state">GitHub</a> - the nodes GitHub repository</li>
+  </ul>
+</script>
